@@ -1,12 +1,16 @@
 package views
 
-templ ProjectCard(name string, link string, img_src string) {
+import (
+	"strconv"
+)
+
+templ ProjectCard(name string, id int, img_src string) {
 	<div class="bg-gray-800 rounded-lg shadow-md overflow-hidden transition duration-300 transform hover:scale-105">
 		<img src={ img_src } alt="Project 1" class="w-full h-48 object-cover"/>
 		<div class="p-6">
 			<h3 class="font-bold text-xl mb-2 text-purple-400">{ name }</h3>
 			<p class="text-gray-400 mb-4">A brief description of { name } and its key features.</p>
-			<a href={ templ.SafeURL(link) } class="text-cyan-400 hover:text-cyan-300 font-semibold">Learn More</a>
+			<a href={ templ.SafeURL("/projects/" + strconv.Itoa(id)) } class="text-cyan-400 hover:text-cyan-300 font-semibold">Learn More</a>
 		</div>
 	</div>
 }
@@ -17,6 +21,7 @@ templ Meta() {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<title>Trunk</title>
 		<link rel="stylesheet" href="/static/css/output.css"/>
+		<script src="/static/js/htmx.min.js" hx-preserve="true"></script>
 	</head>
 }
 
@@ -28,6 +33,7 @@ templ Header() {
 				<div class="space-x-4">
 					<a href="#projects" class="text-gray-400 hover:text-purple-400 transition duration-300">Projects</a>
 					<a href="#contact" class="text-gray-400 hover:text-purple-400 transition duration-300">Contact</a>
+					<a href="/create" class="text-gray-400 hover:text-purple-400 transition duration-300">Create</a>
 				</div>
 			</div>
 		</nav>
@@ -65,11 +71,19 @@ templ WrapBody() {
 	</main>
 }
 
+templ Introduction() {
+	<div class="mb-8">
+		<h1 class="text-4xl font-bold text-left mb-4 text-purple-400">Welcome to My Portfolio</h1>
+		<p class="text-gray-400">A brief introduction about yourself and your work.</p>
+	</div>
+}
+
 templ MainBody(projects []ProjectData) {
+	@Introduction()
 	<h1 class="text-4xl font-bold text-left mb-12 text-purple-400">Projects</h1>
 	<div id="projects" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 		for _, project := range projects {
-			@ProjectCard(project.Name, project.Link, project.ImgSrc)
+			@ProjectCard(project.Name, project.Id, project.Image)
 		}
 	</div>
 }
@@ -92,9 +106,9 @@ templ layout() {
 }
 
 type ProjectData = struct {
+	Id      int
 	Name    string
-	Link    string
-	ImgSrc  string
+	Image   string
 	Content string
 }
 
@@ -112,4 +126,52 @@ templ ProjectPage(project ProjectData) {
 			@ProjectBody(project)
 		}
 	}
+}
+
+templ NotFound() {
+	@layout() {
+		@WrapBody() {
+			<h1 class="text-4xl font-bold text-left mb-12 text-purple-400">404 - Page Not Found</h1>
+		}
+	}
+}
+
+templ Error(msg string) {
+	@layout() {
+		@WrapBody() {
+			<h1 class="text-4xl font-bold text-left mb-12 text-purple-400">500 - Internal Server Error</h1>
+			<p>{ msg }</p>
+		}
+	}
+}
+
+// {Name: "Project 5", Image: "static/img/placeholder.svg?height=200&width=200", Content: "This is a description of a project."},
+templ CreateProjectPage() {
+	@layout() {
+		@WrapBody() {
+			<h1 class="text-4xl font-bold text-left mb-12 text-purple-400">Create a New Project</h1>
+			<form hx-post="/create" hx-target="#form-result">
+				<div class="mb-4">
+					<label for="name" class="block text-gray-400">Project Name</label>
+					<input type="text" id="name" name="name" class="w-full bg-gray-800 text-gray-100 p-2 rounded-lg focus:outline-none focus:ring focus:border-purple-400" required/>
+				</div>
+				<div class="mb-4">
+					<label for="image" class="block text-gray-400">Image URL</label>
+					<input type="text" id="image" name="image" class="w-full bg-gray-800 text-gray-100 p-2 rounded-lg focus:outline-none focus:ring focus:border-purple-400" required/>
+				</div>
+				<div class="mb-4">
+					<label for="content" class="block text-gray-400">Project Content</label>
+					<textarea id="content" name="content" class="w-full bg-gray-800 text-gray-100 p-2 rounded-lg focus:outline-none focus:ring focus:border-purple-400" required></textarea>
+				</div>
+				<button type="submit" class="bg-purple-600 text-gray-100 p-2 rounded-lg hover:bg-purple-500 transition duration-300">Create Project</button>
+			</form>
+			<div id="form-result"></div>
+		}
+	}
+}
+
+templ Success(msg string) {
+	<div class="bg-green-500 text-white p-4 rounded-lg">
+		{ msg }
+	</div>
 }
